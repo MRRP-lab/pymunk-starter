@@ -5,21 +5,18 @@ import utils
 import environment
 
 class Robots():
-    def __init__(self, filename, config_filename, type, DEMO=0):
+    def __init__(self, filename, config_filename, type):
 
-        # load basics
+        # load parameters
         rconfig = utils.load_config(filename)
         self.ss = int(rconfig["screen_size"])
         self.env = environment.Environment(self.ss)
         self.num = int(rconfig["num_robots"])
 
         # set up coordinates
-        if(DEMO):
-            coords = self.env.safeStartTwoRooms(self.num)
-        else:
-            rng = np.random.default_rng()
-            coords = rng.choice(np.arange(self.ss),size=self.num*2)
-            coords = np.reshape(coords,(self.num,2))
+        rng = np.random.default_rng()
+        coords = rng.choice(np.arange(self.ss),size=self.num*2)
+        coords = np.reshape(coords,(self.num,2))
         self.coords = np.array(coords, dtype=float)
         self.disp_coords = np.array(coords, dtype=int)
         self.v = np.full(self.num,rconfig["robot_vel"])
@@ -45,7 +42,7 @@ class Robots():
         self.directional_stim      = bool(bparams["directional_stimulus"])
         self.full_omni              = not bool(bparams["directional_sense"])
 
-        # stigmergy
+        # leaving trails where robots have been
         self.grid_num = rconfig["grid_num"]
         self.x_coords = np.arange(0, self.grid_num, dtype = float)
         self.new_grid = np.arange(0, self.grid_num*self.grid_num, dtype = tuple)
@@ -56,12 +53,7 @@ class Robots():
         self.prevShade = {}
         self.fading = {}
 
-        # overpowered agent for demo
-        self.DEMO = DEMO
-        if(DEMO):
-            self.influence_skew = np.array(([10000]+[1]*(self.num-1))*5)
-        else:
-            self.influence_skew = np.full(self.num*5,1.)
+        self.influence_skew = np.full(self.num*5,1.) # modify to make some agents "brighter" than others
 
     def update_movement(self, r, noise_factor):
         c = self.coords[r]
@@ -80,12 +72,11 @@ class Robots():
         self.coords[r] = np.array(utils.wrap_pt([xnew, ynew], self.ss, self.ss, offset=(0,0)))
         self.disp_coords[r] = self.coords[r].astype(int)
 
+    # compute all-to-all distances between agents, vectorized
     def distance_calc(self, diff, r, lim_distance):
         distances = np.linalg.norm(diff,axis=1)
-        distances[r] = lim_distance
+        distances[r] = lim_distance # the value for the current robot doesn't matter
         valid_dist_ind = np.where(distances<lim_distance)
-        # the value for the current robot doesn't matter
-        # it is multiplied by 0 in the next steps
         distances[distances>lim_distance] = lim_distance
         # invert 
         with np.errstate(divide='ignore'):
@@ -252,7 +243,7 @@ class Robots():
 
         return MADE_CHANGE
 
-    def update_stim(self, r, n, c, big_coords, big_angles, big_stimuli, group_list, metric, lim_angle, lim_distance, influence_scale, split):
+    def update_stim(self, r, n, c, big_coords, big_angles, big_stimuli, group_list, lim_angle, lim_distance, influence_scale, split):
         # find the relative coords of the matrix to the current point
         diff = big_coords - c
 
@@ -261,8 +252,7 @@ class Robots():
 
         # include directional constraints as needed and distance/angle scaling
         angle_scale, valid_angle_ind = self.angle_calc(diff, r, lim_angle, big_coords, big_angles)
-        right_tot, left_tot, valid_ind = self.direction_calc(self.angles[r], diff, valid_angle_ind, valid_dist_ind, inv_distances, angle_scale, influence_scale,
-big_stimuli)
+        right_tot, left_tot, valid_ind = self.direction_calc(self.angles[r], diff, valid_angle_ind, valid_dist_ind, inv_distances, angle_scale, influence_scale, big_stimuli)
 
         # set the stim value to the sum of stimulus intensity for visualization
         stim = (left_tot+right_tot)*self.stimscale
@@ -373,28 +363,10 @@ big_stimuli)
         #     self.robotsPer[boxIn] = 1
         return(self.robotsPer)
 
-    def initRobotsPer(self):
-        #self.prevRobotsPer = self.robotsPer
+    def initGrid(self):
         boxes = self.grid_num*self.grid_num
         for box in range(boxes):
             self.robotsPer[box] = 0
-
-        #print(self.robotsPer)
-
-    def initPrevRobotsPer(self):
-        #self.prevRobotsPer = self.robotsPer
-        boxes = self.grid_num*self.grid_num
-        for box in range(boxes):
             self.prevRobotsPer[box] = 0
-
-    def initPrevShade(self):
-        #self.prevRobotsPer = self.robotsPer
-        boxes = self.grid_num*self.grid_num
-        for box in range(boxes):
             self.prevShade[box] = 0
-
-    def initFading(self):
-        #self.prevRobotsPer = self.robotsPer
-        boxes = self.grid_num*self.grid_num
-        for box in range(boxes):
             self.fading[box] = False

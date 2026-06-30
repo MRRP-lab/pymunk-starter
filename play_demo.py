@@ -14,7 +14,6 @@ from robots import *
 SAVE_VID = True
 VIZGRID = False
 FPS = 55
-DEMO = 0
 tag = "aggression"
 type = "dir_omni"
 vid_name = tag+"_" + type + ".mp4"
@@ -67,21 +66,16 @@ for i in range(sim_data['x'].shape[0]):
 ########################## MAIN  ###########################################3
 
 # init robots
-robots = Robots(global_filename, c_filename, type, DEMO)
-
+robots = Robots(global_filename, c_filename, type)
 robots.coords = np.array([x_list,y_list]).T
 robots.angles = np.array(theta_list)
 robots.stimuli = np.array(stimuli_list)
-
-running = True
+robots.initGrid()
 
 # sim loop
 framenum = 0
-robots.initRobotsPer()
-robots.initPrevRobotsPer()
-robots.initPrevShade()
-robots.initFading()
-#robots.prevShade = robots.robotsPer
+running = True
+
 for time in range(sim_time):
     if(not running):
         break
@@ -93,59 +87,14 @@ for time in range(sim_time):
     # fill the background with white
     screen.fill((255,255,255))
 
-    # robots.initRobotsPer()
-
-    # draw obstacles
-    if(DEMO):
-        for o in obstacles:
-            pts = list(zip(o, o[1:]))+[(o[-1], o[0])]
-            for (p1, p2) in pts:
-                pygame.draw.line(screen, (100,100,100), p1, p2)
-
-    # add axis labels for plot
-    #x_label = font.render('Time (sec)', True, (0,0,0))
-    #screen.blit(x_label, (100, 200))
-    #y_label = font.render('Intensity', True, (0,0,0))
-    #y_label = pygame.transform.rotate(y_label, 90)
-    #screen.blit(y_label, (2,70))
-
-    ############################################################################
-    #NEW PS
-    #robots.robotsPer.clear()
-    #print("Reset")
-    # for x in robots.robotsPer:
-    #     # if robots.robotsPer[x] == 0:
-    #     #     del robots.robotsPer[x]
-    #     # else:
-    #         robots.robotsPer[x] = 0
-    #print(robots.num)
-
-    #robots.prevRobotsPer = robots.robotsPer
-    # print(time)
-    # print(robots.robotsPer)
-    # print(robots.prevRobotsPer)
-    #print(robots.prevShade)
-
-
     for r in range(robots.num):
         c = robots.coords[r,time]
         robotsPerGrid = robots.robotUpdates(c)
-    ##print("new")
-    #print(robots.robotsPer)
-    # print("now draw")
+
     for boxes in robots.robotsPer:
-            #fading = False
             fade = 10
-
-            #robots.changePer[boxes] = robots.robotsPer[boxes] - robots.prevRobotsPer[boxes]
-            # print("new")
-            # print(robots.robotsPer)
-            # print(robots.prevRobotsPer)
-            # print(robots.changePer)
-
             concentration = robots.robotsPer[boxes]
             shade = 255 - (5*concentration)
-        #print(str(shading) + " " + str(shade) + " "  + str(concentration))
             if shade < 0:
                 shade = 0
 
@@ -159,75 +108,32 @@ for time in range(sim_time):
             x = xHold*interval
             y = yHold*interval
 
-            # if robots.fading[boxes] != False:
-            #     timeChange = time - robots.fading[boxes]
-            #     shade += timeChange*fade
-            #     if shade > 255:
-            #         shade = 255
-
-            #decay by x percent
-            #implement a constant decay rate (linear decay)
-            # also do: x% of total stimulus per timestep
-
-            # if boxes == 6 and time > 0:
-            #     print("new")
-            #     print(robots.prevShade[boxes])
-            #     print(shade)
-            #
-            # if time > 0:
-            #     temp = robots.prevShade[boxes]
-            #
-            # robots.prevShade[boxes] = shade
-            #             #if concentration == 0 and time > 0:
-            # if time > 0 and shade == temp and shade != 255:
-            #     shade = robots.prevShade[boxes] + fade
-            #     robots.prevShade[boxes] = shade
-            #     if robots.fading[boxes] == False:
-            #         robots.fading[boxes] = time
-            #     if boxes == 6:
-            #         print("here")
-            #         print(robots.fading[boxes])
-            #
-            #
-            #
-            #
-            #
-            #
-            # if shade > 255:
-            #     shade = 255
             pygame.draw.rect(screen, (255, shade, 255), (x,y,interval,interval), 0)
-    #print(robots.robotsPer)
-    # print(robots.prevRobotsPer)
-    # print(robots.changePer)
-
-    #robots.prevRobotsPer = robots.robotsPer
 
     # Draws all of the lines needed to make the grid, prints the box numbers (starting at 1)
     # and draws small dots at all of the intersections of the gridlines
     if VIZGRID:
-        for points in range(robots.grid_num):
-            interval = robots.ss/robots.grid_num
+        font = pygame.font.SysFont(None, 15)
+        interval = robots.ss/robots.grid_num
+        for row in range(robots.grid_num):
             inter = 0
             cornerNum = 1
-            pt = float(points*interval)
-            font = pygame.font.SysFont(None, 15)
-
+            pt = float(row*interval)
+            # draw grid lines
             pygame.draw.line(screen, (255, 0, 0), (pt, 0), (pt, robots.ss), width=1)
             pygame.draw.line(screen, (255, 0, 0), (0, pt), (robots.ss, pt), width=1)
 
-            for points2 in range(robots.grid_num):
+            for column in range(robots.grid_num):
                 corner = int(cornerNum + (inter/interval))
                 pygame.draw.circle(screen, (255, 0, 0), (pt, inter), 3)
 
-                img = font.render(str((points2*robots.grid_num)+points), True, (255, 0, 0))
+                img = font.render(str((column*robots.grid_num)+row), True, (255, 0, 0))
                 screen.blit(img, (pt +5 , inter +5))
                 cornerNum += 1
                 inter += interval
             #extra row on the far right
             pygame.draw.circle(screen, (255, 0, 0), (robots.ss, pt), 3)
     ############################################################################
-
-
 
     # update robot positions
     for r in range(robots.num):
@@ -241,26 +147,9 @@ for time in range(sim_time):
         # draw a line to show orientation
         pygame.draw.line(screen, (0,0,l), np.ceil(c), np.ceil(c+15*np.array([np.cos(robots.angles[time,r]),np.sin(robots.angles[time,r])])), 3)
 
-
-    # update stats
-
-    ############ light intensity plot #################
-    # plot_light(robots, time)
-
-    ############ connectivity graph ###################
-    # print(time)
-    #update_conn_matrix(conn_list[time].copy())
-
-    ############ length of chain plot #################
-    # plot_max_path(conn_list[time])
-
-    ############ eigenvalue centrality plot ###########
-    #plot_eig_centrality_series(conn_list[time].copy(), time)
-
-    # update the fps counter
-    #screen.blit(utils.update_fps(), (10,0))
-
+    # update the display
     clock.tick(60)
+    pygame.display.flip()
 
     # save frame to disk
     if SAVE_VID:
@@ -268,14 +157,12 @@ for time in range(sim_time):
         pygame.image.save(screen, fname)
         framenum += 1
 
-    # update the display
-    pygame.display.flip()
-
 # quit
 pygame.quit()
 
 ########################## SAVE TO VID ###########################################
 
+def 
 if SAVE_VID:
     cmd = str(f"ffmpeg -r {FPS} -f image2 -i {tag}_frames/%04d.png -y -qscale 0 -s {width}x{height} {vid_out}")
     os.system(cmd)

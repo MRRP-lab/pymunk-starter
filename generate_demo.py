@@ -10,21 +10,12 @@ from robots import *
 
 ########################## PARAMETERS ###########################################
 
-previous_time_test = time.time()
-
-DEMO = 0
-
-#variables for saving data
-sim_data = []
-
 tag = "aggression"
 type = "dir_omni"
-
 
 global_filename = "configs/global_config.yaml"
 c_filename = "configs/" + tag + ".yaml"
 e_filename = "configs/env_config.yaml"
-metric = np.array([]) # leaving for future integration w/ QD algorithms
 
 datadir = './data'
 if not os.path.exists(datadir):
@@ -38,13 +29,11 @@ if not os.path.exists(datadir):
 gparams = utils.load_config(global_filename)
 sim_time, ss = gparams["sim_time"], gparams["screen_size"]
 
-if(DEMO):
-    dparams = utils.load_config(e_filename)
-    obstacles = dparams["obstacles"]
-
-robots = Robots(global_filename, c_filename, type, DEMO)
+robots = Robots(global_filename, c_filename, type)
 
 group_list = [np.zeros(robots.num)]
+
+sim_data = [] # for logging data
 
 ### Simulation Loop
 
@@ -57,13 +46,8 @@ for t in range(sim_time):
         # update robot positions
         robots.update_movement(r, robots.noise_factor)
 
-        # returns true if there was a collision
-        # and moves robot back to original position and reorients
-        if(DEMO):
-            retval = robots.check_collision(r, obstacles, c)
-
         # update stimuli
-        return_data = robots.update_stim(r, robots.num, robots.coords[r], big_coords.copy(), big_angles.copy(), big_stimuli.copy(), group_list, metric, robots.lim_angle, robots.lim_distance, robots.influence_scale, robots.split)
+        return_data = robots.update_stim(r, robots.num, robots.coords[r], big_coords.copy(), big_angles.copy(), big_stimuli.copy(), group_list, robots.lim_angle, robots.lim_distance, robots.influence_scale, robots.split)
 
     sim_data.append([robots.coords[:,0].copy(), robots.coords[:,1].copy(), robots.angles.copy(), robots.stimuli.copy()])
 
