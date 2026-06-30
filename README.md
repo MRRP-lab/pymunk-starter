@@ -1,38 +1,41 @@
-# Pymunk for robotics simulation
+# Pymunk for Mobile Robot Simulation
 
 This repository is intended to be a starting place for (relatively) quickly
-spinning up a two-dimensional simulation of a robotic system.
+spinning up a two-dimensional physics-based simulation of a robotic system.
 
 [Pymunk Docs](https://www.pymunk.org/en/latest/pymunk.html)
 
 ## Getting started
 
-Run `python generate_demo.py`, then run `python play_demo.py`. The second
-command should cause a box to pop up, visualizing the simulation. `play_demo.py`
-will also save a video to the `videos` folder.
+### Dependencies
+
+See [the PyProject manifest](./pyproject.toml).
+
+Can install dependencies with:
+
+```code
+pip install -e .
+```
+
+### Running Simulator
+
+Run `python run_sim.py`. This will cause an animation to pop up while the
+simulator is running. You can disable the visualization by setting `VIZ =
+False` at the top of `run_sim.py`. Either way, the script will log data in
+the `data/` folder.
+
+Once you have run the simulator, you can run `python replay_sim.py`. This will
+also cause a box to pop up, re-visualizing the simulation. If you change the
+variable `SAVE_VID` within `replay_sim.py` to true, the program will save a
+video to the `videos` folder (requires ffmpeg).
+
+Check out `configs/global_config.yaml` to change some simulation parameters.
 
 ## Design Choices
 
-We have separated generation of the simulation (`generate_demo.py`) from
-visualization of the simulation (`play_demo.py`). While pymunk is pretty
-efficient, at larger numbers of agents, the simulation cannot render in real
-time while also solving for the physics and interactions involved.
+We have separated generation of the simulation (`run_sim.py`) from
+visualization of the simulation (`replay_sim.py`). While pymunk is pretty
+efficient, at larger numbers of agents or more complex environments, the simulation
+cannot render in real time while also solving for the physics and interactions involved.
 
-We've included trails to see where robots have been and a pointer to show robot
-orientation.
-
-Most of the interesting stuff happens in `robots.py`. The robots are set up to
-act like Braitenberg vehicles; try changing values in `configs/aggresion.yaml`
-and see what happens to the robot behaviors.
-
-The environment is set up to act like a torus (the top and bottom of the screen
-are connected to each other, and the left and right are paired as well). TODO:
-make the torus geometry more modular so we can switch on and off.
-
-## Dependencies
-
-- yaml
-- pygame
-- numpy
-- pylab
-- pandas
+In `replay_sim.py`, we've included trails to see where robots have been.

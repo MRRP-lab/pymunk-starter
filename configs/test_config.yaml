@@ -1,3 +1,4 @@
+# default config for running test suite
 robot:
   angle_incr: 0.01
   lightscale: 1

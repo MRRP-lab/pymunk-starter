@@ -1,11 +1,11 @@
 #! /usr/bin/python3
-#
+
 import numpy as np
 
 
 class Environment():
 
-    def __init__(self, ss, torus=True):
+    def __init__(self, ss):
         self.ss = ss
 
     # generate a set of random starting positions for the robots in a subset of the env

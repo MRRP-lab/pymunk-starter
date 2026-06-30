@@ -1,0 +1,17 @@
+[project]
+name = "AutoSurfaceVehicle"
+version = "0.1.0"
+requires-python = ">3.9"
+dependencies = [
+    "pymunk",
+    "pygame",
+    "numpy",
+    "pandas",
+    "pyyaml"
+]
+
+[build-system]
+requires = ["setuptools"]
+
+[tool.setuptools.packages.find]
+exclude = ["data*", "config*"]

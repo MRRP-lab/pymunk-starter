@@ -1,28 +1,11 @@
 import numpy as np
 import yaml
 import pygame
-import pylab
 
 EPSILON = 0.00001
 DEBUG = False
 
 ### GEOMETRY
-
-# wraps an xy point as if it were on a torus
-# potentially with an offset if there are other surfaces on the screen
-def wrap_pt(pt, w, h, offset = (0,0)):
-    x, y = pt
-    x0, y0 = offset
-
-    xnew, ynew = x, y
-
-    if (x < x0) or (x > x0 + w):
-        xnew = x0 + ((x-x0) % w)
-
-    if (y < y0) or (y > y0 + h):
-        ynew = y0 + ((y-y0) % h)
-
-    return [xnew, ynew]
 
 # returns the new heading for an agent that has hit a wall
 # assumes bot r has moved through edge segment to the wrong side
@@ -44,34 +27,6 @@ def bounce(edge, prev_c, new_c):
 
     return heading
 
-def setup_big_array(small, offset):
-    n = small.shape[0]
-    big_coords = np.zeros((5*n,2))
-    big_coords[0:n,:] = small
-    big_coords[n:2*n] = small + [offset,0]
-    big_coords[2*n:3*n] = small + [0,offset]
-    big_coords[3*n:4*n] = small + [-offset,0]
-    big_coords[4*n:5*n] = small + [0,-offset]
-
-    return big_coords
-
-# generate the big grid for toroidal calculations
-# only works for square environments
-def setup_big_arrays(robots):
-    n = robots.num
-    ss = robots.ss
-    big_coords = setup_big_array(robots.coords, ss)
-    big_stimuli = np.array([robots.stimuli]*5).flatten()
-
-    big_angles = np.zeros((5*n))
-    big_angles[0:n] = robots.angles
-    big_angles[n:2*n] = robots.angles
-    big_angles[2*n:3*n] = robots.angles
-    big_angles[3*n:4*n] = robots.angles
-    big_angles[4*n:5*n] = robots.angles
-
-    return big_coords, big_stimuli, big_angles
-
 # returns +1 if v2 is pointing to the left of an agent looking along v1
 # return -1 otherwise
 # assumes v1 and v2 are vectors centered on the origin
@@ -79,6 +34,7 @@ def vector_to_left(heading, vec):
     x, y = np.cos(heading), np.sin(heading)
     return np.sign(x*vec[1] - y*vec[0])
 
+# same as vector_to_left but returns indices from list of points
 def vector_to_left_inds(heading, pts):
     signs = vector_to_left(heading, pts)
     rind = np.where(signs <=0)
@@ -132,7 +88,6 @@ def ShootRay(state, v1, v2):
         pint = np.array([pt[0] + np.cos(theta)*t, pt[1] + np.sin(theta)*t])
         return t, u, pint, v1, v2 # return edge end points for ease of identifying edges crossed
 
-
 # any theta will work unless parallel to an edge
 def IsInPolyNoHoles(p, vs, theta = 0.):
     ''' test if point p is in poly using crossing number.
@@ -153,12 +108,6 @@ def IsInPolyNoHoles(p, vs, theta = 0.):
             pass
     return (not (intersects%2 == 0)), int_data # return edges that intersect
 
-# generate a set of random starting positions for the robots for the demonstration, in this case with hardcoded parameters for the two rooms sim
-def hardcoded_gen_coords(ss, num):
-    first_half = np.array((np.random.choice([x for x in range(20,235)],num),np.random.choice([x for x in range(20,480)],num))).T
-
-    return first_half
-
 ### FILE HANDLING
 #
 # TODO maybe separate environments and robots completely for easier batch processing
@@ -168,27 +117,14 @@ def load_config(filename):
         with open(filename) as file:
             param_list = yaml.load(file,Loader=yaml.FullLoader)
 
+        # unpack yaml (sections in config are just for organization)
         params = {k: float(v) for section in param_list
-                       for k, v in param_list[section].items()} # unpack yaml
+                       for k, v in param_list[section].items()}
 
         # Data sanitization as needed
-        for key in ["sim_time", "screen_size", "grid_num", "num_robots"]:
+        for key in ["sim_time", "screen_size", "grid_num", "FPS"]:
             params[key] = int(params[key])
 
-        return params
-    except Exception as e:
-        print("Error loading file: " + str(filename))
-        print(e)
-        raise Exception("Error loading file: " + str(filename))
-
-# for loading view of specific subtype in file
-# used for various sensing constraints on same behavior
-def load_typed_config(filename, type):
-    params = {}
-    try:
-        with open(filename) as file:
-            all_params = yaml.load(file,Loader=yaml.FullLoader)
-            params = {k: v for d in all_params[type] for k, v in d.items()} # unpack yaml
         return params
     except Exception as e:
         print("Error loading file: " + str(filename))
@@ -216,25 +152,3 @@ def update_fps(clock, font):
     fps = str(int(clock.get_fps()))
     fps_text = font.render(fps, 1, pygame.Color("coral"))
     return fps_text
-
-# generate a sample of rainbow colors of size NUM_COLORS
-def gen_colors(NUM_COLORS):
-    colors = np.zeros((NUM_COLORS,4))
-    cm = pylab.get_cmap('gist_rainbow')
-    for i in range(NUM_COLORS):
-        colors[i] = cm(1.*i/NUM_COLORS)  # color will now be an RGBA tuple
-    return colors
-
-# helper function to print out the current behavior
-def print_behavior(rb, font):
-    if(rb.attract and not rb.speed_up):
-        b = "Love"
-    elif(rb.attract and rb.speed_up):
-        b = "Aggression"
-    elif(not rb.attract and not rb.speed_up):
-        b = "Fear"
-    else:
-        b = "Curiosity"
-        
-    return font.render(b, 25, pygame.Color("coral"))
-
